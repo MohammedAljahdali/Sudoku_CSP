@@ -216,6 +216,7 @@ def copyGame(assignment: Sudoku):
 
 #### GUI ####
 root = Tk()
+root.title('Sudoku')
 e = []
 for i in range(9):
     for j in range(9):
