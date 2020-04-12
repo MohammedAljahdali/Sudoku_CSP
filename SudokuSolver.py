@@ -2,6 +2,7 @@ import numpy as np
 import copy
 import queue
 from tkinter import *
+import tkinter.messagebox
 
 class SetQueue(queue.Queue):
     def _init(self, maxsize):
@@ -36,7 +37,10 @@ class Sudoku():
             value = filled[i, 2]
             self.board[x, y] = value
             ### here we change the domain of added values to be only the value
-            self.domains[x][y] = [value]
+            for i in range(9):
+                if self.domains[x][y][i] == value:
+                    continue
+                self.domains[x][y][i] = 0
 
 def allArcs():
     q = SetQueue(0)
@@ -84,13 +88,14 @@ def assignValue(assignment, game):  ## TODO: we might need to add counter to not
 
 def isConsistent(valueI, valueJ, value, assignment, game):
     for i in range(9):
-        if value == assignment.board[valueI][i] or value == assignment.board[i][valueJ] or game.board[valueI][
-            i] == value or value == game.board[i][valueJ]:
+        if value == assignment.board[valueI][i] and valueJ != i:
+            return False
+        if value == assignment.board[i][valueJ] and valueI != i:
             return False
     index = getBlock(valueI, valueJ)
     for i in range(index[0] * 3, index[0] * 3 + 3):
         for j in range(index[1] * 3, index[1] * 3 + 3):
-            if value == assignment.board[i][j] or value == game.board[i][j]:
+            if value == assignment.board[i][j] and i != valueI and j != valueJ:
                 return False
     return True
 
@@ -147,8 +152,9 @@ def arcConsistency(assignment, game):
         indices = q.get()
         Di = assignment.domains[indices[0]][indices[1]]
         Dj = assignment.domains[indices[2]][indices[3]]
+        print(Di)
         if updateDomains(Di,Dj):
-            if len(Di) == 0:
+            if np.array_equal(Di, np.array([0,0,0,0,0,0,0,0,0])):
                 return False
             neighbors = getNeighborsOf(indices[0], indices[1])
             for index in range(len(neighbors) // 2):
@@ -177,8 +183,21 @@ def updateDomains(Di: np.ndarray, Dj):
     return updated
 
 
+def solvable(assignment):
+    for i in range(9):
+        for j in range(9):
+            value = assignment.board[i, j]
+            if value == 0:
+                continue
+            if not isConsistent(i, j, value, assignment, assignment):
+                return False
+    return True
+
+
 def backTracking(assignment, game):
     # if all the variable are assigned we stop the backtracking
+    if not solvable(assignment):
+        return False
     if assignmentComplete(assignment, game):
         print(assignment.board)
         displayFinalBoard(assignment.board)
@@ -234,7 +253,12 @@ def start():
             filled[index, 2] = int(e[index].get())
     s = Sudoku()
     s.fill(filled)
-    CSP(s)
+    output = CSP(s)
+    if output:
+        tkinter.messagebox.showinfo(message='Bingo we found a solution')
+    else:
+        tkinter.messagebox.showinfo(message='Opus, it seems there is no solution for your input')
+
 
 b1 = Button(root, width = 20, text = "start", command = start).grid(row = 9, column = 0, columnspan = 5, padx=5,pady=5,ipady=3)
 
